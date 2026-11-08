@@ -1,0 +1,33 @@
+/*
+ * SPDX-License-Identifier: MIT
+ *
+ * SPDX-FileCopyrightText: 2026 Valentin Liu (LIU, YUANCHEN) <valentinliu@icloud.com>
+ */
+
+#ifndef ANYCA_VERSION_H
+#define ANYCA_VERSION_H
+
+/* Generated from include/anyca/version.h.in by CMake.  Do not edit. */
+
+#define ANYCA_VERSION_MAJOR @ANYCA_VERSION_MAJOR@
+#define ANYCA_VERSION_MINOR @ANYCA_VERSION_MINOR@
+#define ANYCA_VERSION_PATCH @ANYCA_VERSION_PATCH@
+
+/* Semantic version, for example "0.1.0". */
+#define ANYCA_VERSION_STRING "@ANYCA_VERSION_STRING@"
+
+/* Short git commit of the build, or "unknown" outside a git checkout. */
+#define ANYCA_VERSION_EXT "@GIT_COMMIT_HASH@"
+
+/* Semantic version with the commit, for example "0.1.0-ab12cd3". */
+#define ANYCA_VERSION_FULL ANYCA_VERSION_STRING "-" ANYCA_VERSION_EXT
+
+/* Numeric form for compile-time comparisons. */
+#define ANYCA_VERSION_NUMBER \
+	(ANYCA_VERSION_MAJOR * 10000 + ANYCA_VERSION_MINOR * 100 + \
+	 ANYCA_VERSION_PATCH)
+
+/* Alias kept for code and consumers that use the earlier name. */
+#define ANYCA_CORE_VERSION ANYCA_VERSION_FULL
+
+#endif /* ANYCA_VERSION_H */

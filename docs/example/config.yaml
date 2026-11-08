@@ -1,0 +1,111 @@
+# AnyCA Configuration
+#
+# See ../DEPLOY.md (../DEPLOY.zh-cn.md) for a complete deployment walkthrough,
+# including SoftHSM setup and importing an existing CA key into SoftHSM.
+
+# Database
+store:
+  path: "./store.db"
+
+# HTTP Server
+http:
+  address: "0.0.0.0"
+  port: 8080
+  # Availability limits.  Omitted or 0 values use the built-in defaults:
+  # 1024 libwebsockets fds, 1000 requests/s per client and a burst of 2000.
+  #max_connections: 1024
+  #requests_per_second: 1000
+  #request_burst: 2000
+
+# Publish directories (optional)
+# CRLs are written to <crl_publish_path>/<CA-name>/<CA-name>.crl and CA
+# certificates to <cacerts_publish_path>/<CA-name>.crt, both DER encoded.
+# The server publishes at start-up and on its periodic CRL timer; the CLI
+# publishes on demand with "ca publish-crl" and "crl publish".
+crl_publish_path: "./crl"
+cacerts_publish_path: "./cacerts"
+
+# HSM Providers
+hsm_providers:
+  - name: "softhsm"
+    # model and serial are optional; a URI without provider= uses them to
+    # select this entry.  serial is unique per token.
+    model: "SoftHSM v2"
+    #serial: "3dfe48398b2b6b63"
+    library: "/usr/lib/softhsm/libsofthsm2.so"
+  #- name: "ykcs11"
+  #  library: "/usr/lib/x86_64-linux-gnu/libykcs11.so"
+
+# Certificate Authorities
+# CAs are stored in the database, not in this file.  Manage them with:
+#   anyca_cli ca create --name root-ca \
+#       --key-uri 'pkcs11:model=SoftHSM%20v2;token=AnyCA;object=root-ca-key?pin-value=1234' \
+#       --ocsp-key-uri 'pkcs11:model=SoftHSM%20v2;token=AnyCA;object=root-ca-ocsp-key?pin-value=1234' \
+#       --ocsp-responder-endpoint root-ca \
+#       --crl-publish-period-min 60 --ocsp-update-period-min 10
+#   anyca_cli ca import --name existing-ca \
+#       --key-uri 'pkcs11:model=SoftHSM%20v2;token=AnyCA;object=existing-key?pin-value=1234' \
+#       --in ./existing-ca.der \
+#       --ocsp-key-uri 'pkcs11:model=SoftHSM%20v2;token=AnyCA;object=existing-ocsp-key?pin-value=1234' \
+#       --ocsp-responder-endpoint existing-ca
+#   Import a key pair with "softhsm2-util --import" so the token contains both
+#   the private and public key objects; see ../DEPLOY.md section 4.
+#   anyca_cli crl publish --all
+#   anyca_cli ca list
+#   anyca_cli ca update --ca-name root-ca --crl-publish-period-min 30 \
+#       --ocsp-update-period-min 10
+#   anyca_cli ca delete --ca-name root-ca
+#
+# A PKCS #11 URI selects an hsm_providers entry, token, key object and PIN:
+#   pkcs11:[provider=<name>;][model=<model>;][serial=<serial>;]token=<label>;object=<label>?pin-value=<pin>
+# model and serial are standard RFC 7512 attributes matched against the
+# optional model/serial fields above.  provider=<name> is an AnyCA extension
+# that names an entry directly.  Use pin-source=<file> instead of pin-value to
+# keep the PIN out of argv.
+# The CA key URI and the OCSP signer key URI may select different providers,
+# so the two keys can live in separate PKCS #11 modules.
+
+# Certificate templates
+# Selected at issuance time with "cert new-root --certificate-template
+# <name>" or "cert issue --basic --certificate-template <name>".  The
+# template supplies authorityInfoAccess (issuer_uris and ocsp_uris) and
+# cRLDistributionPoints (crl_uris).  All URI lists are optional.
+certificate_templates:
+  - name: "default"
+    aia:
+      issuer_uris:
+        - "http://127.0.0.1/xxx.crt"
+      ocsp_uris:
+        - "http://127.0.0.1/ocsp/xxx"
+    crl_uris:
+      - "http://127.0.0.1/xxx.crl"
+
+# Certificate policies
+# Selected with "cert issue --basic --certificate-policy <name>".  Each cps
+# entry adds a certificate policy OID and, when uri is set, a CPS qualifier.
+certificate_policies:
+  - name: "code-signing"
+    cps:
+      - oid: "2.23.140.1.4.1"
+        # Optional link
+        uri: "http://127.0.0.1/cp/2.23.140.1.4.1/"
+  - name: "code-signing-timestamping"
+    cps:
+      - oid: "2.23.140.1.4.2"
+        # Optional link
+        uri: "http://127.0.0.1/cp/2.23.140.1.4.2/"
+
+certificate_usages:
+  - name: "ca"
+    # X.509 KeyUsage: digitalSignature, nonRepudiation, keyEncipherment, dataEncipherment, keyAgreement, keyCertSign, cRLSign, encipherOnly, decipherOnly
+    basic_usages:
+      - "digitalSignature"
+      - "keyCertSign"
+      - "cRLSign"
+    # When empty, there is no Enhanced Key Usage extension will be added.
+    enhanced_usage_oids: []
+  - name: "code-signing"
+    basic_usages:
+      - "digitalSignature"
+    enhanced_usage_oids:
+      - "1.3.6.1.5.5.7.3.3"
