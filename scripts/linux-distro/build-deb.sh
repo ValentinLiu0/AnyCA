@@ -327,7 +327,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/lib/anyca
+ReadWritePaths=/var/lib/anyca /var/lib/softhsm/tokens
 # SoftHSM falls back to /etc/softhsm/softhsm2.conf.  When the tokens use a
 # different configuration file, set it here or in a drop-in:
 #Environment=SOFTHSM2_CONF=/etc/softhsm/softhsm2.conf
@@ -456,6 +456,10 @@ case "$1" in
             adduser --system --ingroup anyca --home /var/lib/anyca \
                 --no-create-home --gecos "AnyCA OCSP responder" \
                 --shell /usr/sbin/nologin anyca
+        fi
+        # Grant AnyCA access to SoftHSM tokens.
+        if getent group softhsm >/dev/null; then
+            adduser anyca softhsm
         fi
         install -d -o anyca -g anyca -m 0750 /var/lib/anyca
         install -d -o anyca -g anyca -m 0750 \
